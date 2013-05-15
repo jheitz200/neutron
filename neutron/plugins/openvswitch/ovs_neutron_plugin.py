@@ -46,12 +46,15 @@ from neutron.db import l3_agentschedulers_db
 from neutron.db import l3_gwmode_db
 from neutron.db import l3_rpc_base
 from neutron.db import portbindings_db
+from neutron.db import qos_rpc_base as qos_db_rpc
 from neutron.db import quota_db  # noqa
 from neutron.db import securitygroups_rpc_base as sg_db_rpc
 from neutron.extensions import allowedaddresspairs as addr_pair
 from neutron.extensions import extra_dhcp_opt as edo_ext
 from neutron.extensions import portbindings
 from neutron.extensions import providernet as provider
+from neutron.extensions import qos
+from neutron import manager
 from neutron.openstack.common import importutils
 from neutron.openstack.common import log as logging
 from neutron.openstack.common import rpc
@@ -61,6 +64,7 @@ from neutron.plugins.common import utils as plugin_utils
 from neutron.plugins.openvswitch.common import config  # noqa
 from neutron.plugins.openvswitch.common import constants
 from neutron.plugins.openvswitch import ovs_db_v2
+from neutron.services.qos.agents import qos_rpc as qos_rpc
 
 
 LOG = logging.getLogger(__name__)
@@ -68,13 +72,15 @@ LOG = logging.getLogger(__name__)
 
 class OVSRpcCallbacks(dhcp_rpc_base.DhcpRpcCallbackMixin,
                       l3_rpc_base.L3RpcCallbackMixin,
-                      sg_db_rpc.SecurityGroupServerRpcCallbackMixin):
+                      sg_db_rpc.SecurityGroupServerRpcCallbackMixin,
+                      qos_db_rpc.QoSServerRpcCallbackMixin):
 
     # history
     #   1.0 Initial version
     #   1.1 Support Security Group RPC
+    #   1.2 QoS RPC
 
-    RPC_API_VERSION = '1.1'
+    RPC_API_VERSION = '1.2'
 
     def __init__(self, notifier, tunnel_type):
         self.notifier = notifier
@@ -175,15 +181,17 @@ class OVSRpcCallbacks(dhcp_rpc_base.DhcpRpcCallbackMixin,
 
 
 class AgentNotifierApi(proxy.RpcProxy,
-                       sg_rpc.SecurityGroupAgentRpcApiMixin):
+                       sg_rpc.SecurityGroupAgentRpcApiMixin,
+                       qos_rpc.QoSAgentRpcApiMixin):
     '''Agent side of the openvswitch rpc API.
 
     API version history:
         1.0 - Initial version.
+        1.1 - QoS API
 
     '''
 
-    BASE_RPC_API_VERSION = '1.0'
+    BASE_RPC_API_VERSION = '1.1'
 
     def __init__(self, topic):
         super(AgentNotifierApi, self).__init__(
@@ -232,7 +240,8 @@ class OVSNeutronPluginV2(db_base_plugin_v2.NeutronDbPluginV2,
                          agentschedulers_db.DhcpAgentSchedulerDbMixin,
                          portbindings_db.PortBindingMixin,
                          extradhcpopt_db.ExtraDhcpOptMixin,
-                         addr_pair_db.AllowedAddressPairsMixin):
+                         addr_pair_db.AllowedAddressPairsMixin,
+                         qos_db_rpc.QoSServerRpcMixin):
 
     """Implement the Neutron abstractions using Open vSwitch.
 
@@ -264,7 +273,8 @@ class OVSNeutronPluginV2(db_base_plugin_v2.NeutronDbPluginV2,
                                     "l3_agent_scheduler",
                                     "dhcp_agent_scheduler",
                                     "extra_dhcp_opt",
-                                    "allowed-address-pairs"]
+                                    "allowed-address-pairs",
+                                    "quality-of-service"]
 
     @property
     def supported_extension_aliases(self):
@@ -373,6 +383,16 @@ class OVSNeutronPluginV2(db_base_plugin_v2.NeutronDbPluginV2,
         elif binding.network_type == constants.TYPE_LOCAL:
             network[provider.PHYSICAL_NETWORK] = None
             network[provider.SEGMENTATION_ID] = None
+
+    def _extend_network_dict_qos(self, context, network):
+        mapping = self.get_mapping_for_network(context, network['id'])
+        if mapping:
+            network[qos.QOS] = mapping[0].qos_id
+
+    def _extend_port_dict_qos(self, context, port):
+        mapping = self.get_mapping_for_port(context, port['id'])
+        if mapping:
+            port[qos.QOS] = mapping[0].qos_id
 
     def _process_provider_create(self, context, attrs):
         network_type = attrs.get(provider.NETWORK_TYPE)
@@ -495,12 +515,30 @@ class OVSNeutronPluginV2(db_base_plugin_v2.NeutronDbPluginV2,
     def update_network(self, context, id, network):
         provider._raise_if_updates_provider_attributes(network['network'])
 
+        qos_id = attributes.is_attr_set(network['network'].get(qos.QOS))
+
         session = context.session
         with session.begin(subtransactions=True):
+            mapping = self.get_mapping_for_network(context, id)
+            if qos_id and not mapping:
+                self._process_create_qos_for_network(context,
+                                                     network['network']['qos'],
+                                                     id)
+            elif not qos_id and mapping:
+                self._process_delete_qos_for_network(context,
+                                                     mapping[0].qos_id,
+                                                     id)
+            elif qos_id:
+                qos_id = network['network']['qos']
+                mapping = mapping[0]
+                mapping.qos_id = qos_id
+                self._process_update_mapping_for_network(context, mapping)
+
             net = super(OVSNeutronPluginV2, self).update_network(context, id,
                                                                  network)
             self._process_l3_update(context, net, network['network'])
             self._extend_network_dict_provider(context, net)
+            self._extend_network_dict_qos(context, net)
         return net
 
     def delete_network(self, context, id):
@@ -526,6 +564,7 @@ class OVSNeutronPluginV2(db_base_plugin_v2.NeutronDbPluginV2,
             net = super(OVSNeutronPluginV2, self).get_network(context,
                                                               id, None)
             self._extend_network_dict_provider(context, net)
+            self._extend_network_dict_qos(context, net)
         return self._fields(net, fields)
 
     def get_networks(self, context, filters=None, fields=None,
@@ -538,8 +577,29 @@ class OVSNeutronPluginV2(db_base_plugin_v2.NeutronDbPluginV2,
                                             limit, marker, page_reverse)
             for net in nets:
                 self._extend_network_dict_provider(context, net)
+                self._extend_network_dict_qos(context, net)
 
         return [self._fields(net, fields) for net in nets]
+
+    def get_port(self, context, id, fields=None):
+        session = context.session
+        with session.begin(subtransactions=True):
+            port = super(OVSNeutronPluginV2, self).get_port(context,
+                                                            id, fields)
+            self._extend_port_dict_qos(context, port)
+        return port
+
+    def get_ports(self, context, filters=None, fields=None,
+                  sorts=None,
+                  limit=None, marker=None, page_reverse=False):
+        session = context.session
+        with session.begin(subtransactions=True):
+            ports = super(OVSNeutronPluginV2,
+                          self).get_ports(context, filters, fields,
+                                          sorts, limit, marker, page_reverse)
+            for port in ports:
+                self._extend_port_dict_qos(context, port)
+        return [self._fields(port, fields) for port in ports]
 
     def create_port(self, context, port):
         # Set port status as 'DOWN'. This will be updated by agent
@@ -567,7 +627,25 @@ class OVSNeutronPluginV2(db_base_plugin_v2.NeutronDbPluginV2,
         session = context.session
         need_port_update_notify = False
         changed_fixed_ips = 'fixed_ips' in port['port']
+
+        qos_id = attributes.is_attr_set(port['port'].get(qos.QOS))
+
         with session.begin(subtransactions=True):
+            mapping = self.get_mapping_for_port(context, id)
+            if qos_id and not mapping:
+                self._process_create_qos_for_port(context,
+                                                  port['port']['qos'],
+                                                  id)
+            elif not qos_id and mapping:
+                self._process_delete_qos_for_port(context,
+                                                  mapping[0].qos_id,
+                                                  id)
+            elif qos_id:
+                qos_id = port['port']['qos']
+                mapping = mapping[0]
+                mapping.qos_id = port['port']['qos']
+                self._process_update_mapping_for_port(context, mapping)
+
             original_port = super(OVSNeutronPluginV2, self).get_port(
                 context, id)
             updated_port = super(OVSNeutronPluginV2, self).update_port(
@@ -601,6 +679,7 @@ class OVSNeutronPluginV2(db_base_plugin_v2.NeutronDbPluginV2,
                                       binding.network_type,
                                       binding.segmentation_id,
                                       binding.physical_network)
+        self._extend_port_dict_qos(context, updated_port)
         return updated_port
 
     def delete_port(self, context, id, l3_port_check=True):
@@ -618,3 +697,22 @@ class OVSNeutronPluginV2(db_base_plugin_v2.NeutronDbPluginV2,
             super(OVSNeutronPluginV2, self).delete_port(context, id)
 
         self.notify_security_groups_member_updated(context, port)
+
+    def validate_qos(self, qos):
+        if 'qos' in qos:
+            if 'policies' not in qos['qos']:
+                raise qos.QoSValidationError()
+            self._validate_policy(qos['qos']['policies'])
+        else:
+            raise qos.QoSValidationError()
+
+    def _validate_policy(self, policy):
+            if 'dscp' in policy:
+                try:
+                    dscp = int(policy['dscp'])
+                    if dscp < 0 or dscp > 63:
+                        raise qos.QoSValidationError()
+                except ValueError:
+                    raise qos.QoSValidationError()
+            else:
+                raise qos.QoSValidationError()

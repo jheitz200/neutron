@@ -21,6 +21,7 @@
 # @author: Aaron Rosen, Nicira Networks, Inc.
 # @author: Seetharama Ayyadevara, Freescale Semiconductor, Inc.
 # @author: Kyle Mestery, Cisco Systems, Inc.
+# @author: Sean M. Collins, Comcast
 
 import distutils.version as dist_version
 import sys
@@ -47,6 +48,7 @@ from neutron.openstack.common.rpc import common as rpc_common
 from neutron.openstack.common.rpc import dispatcher
 from neutron.plugins.openvswitch.common import config  # noqa
 from neutron.plugins.openvswitch.common import constants
+from neutron.services.qos.agents import qos_rpc
 
 
 LOG = logging.getLogger(__name__)
@@ -107,7 +109,8 @@ class Port(object):
 
 
 class OVSPluginApi(agent_rpc.PluginApi,
-                   sg_rpc.SecurityGroupServerRpcApiMixin):
+                   sg_rpc.SecurityGroupServerRpcApiMixin,
+                   qos_rpc.QoSServerRpcApiMixin):
     pass
 
 
@@ -119,8 +122,19 @@ class OVSSecurityGroupAgent(sg_rpc.SecurityGroupAgentRpcMixin):
         self.init_firewall()
 
 
+class OVSQoSAgent(qos_rpc.QoSAgentRpcMixin):
+    def __init__(self, context, plugin_rpc, root_helper, **kwargs):
+        self.context = context
+        self.plugin_rpc = plugin_rpc
+        self.root_helper = root_helper
+        if 'OpenflowQoSVlanDriver' in cfg.CONF.QOS.qos_driver:
+            self.init_qos(kwargs.get('bridge'),
+                          kwargs.get('local_vlan_map'))
+
+
 class OVSNeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin,
-                      l2population_rpc.L2populationRpcCallBackMixin):
+                      l2population_rpc.L2populationRpcCallBackMixin,
+                      qos_rpc.QoSAgentRpcCallbackMixin):
     '''Implements OVS-based tunneling, VLANs and flat networks.
 
     Two local bridges are created: an integration bridge (defaults to
@@ -150,7 +164,8 @@ class OVSNeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin,
     # history
     #   1.0 Initial version
     #   1.1 Support Security Group RPC
-    RPC_API_VERSION = '1.1'
+    #   1.2 Support QoS RPC
+    RPC_API_VERSION = '1.2'
 
     def __init__(self, integ_br, tun_br, local_ip,
                  bridge_mappings, root_helper,
@@ -216,6 +231,14 @@ class OVSNeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin,
         self.sg_agent = OVSSecurityGroupAgent(self.context,
                                               self.plugin_rpc,
                                               root_helper)
+        # QoS agent support
+        if 'OpenflowQoSVlanDriver' in cfg.CONF.QOS.qos_driver:
+
+            self.qos_agent = OVSQoSAgent(self.context,
+                                         self.plugin_rpc,
+                                         root_helper,
+                                         bridge=self.int_br,
+                                         local_vlan_map=self.local_vlan_map)
 
     def _check_ovs_version(self):
         if constants.TYPE_VXLAN in self.tunnel_types:
@@ -248,7 +271,8 @@ class OVSNeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin,
         consumers = [[topics.PORT, topics.UPDATE],
                      [topics.NETWORK, topics.DELETE],
                      [constants.TUNNEL, topics.UPDATE],
-                     [topics.SECURITY_GROUP, topics.UPDATE]]
+                     [topics.SECURITY_GROUP, topics.UPDATE],
+                     [topics.QOS, topics.UPDATE]]
         if self.l2_pop:
             consumers.append([topics.L2POPULATION,
                               topics.UPDATE, cfg.CONF.host])

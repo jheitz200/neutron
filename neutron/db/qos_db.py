@@ -47,6 +47,10 @@ class QoS(model_base.BASEV2, models_v2.HasId, models_v2.HasTenant):
     description = sa.Column(sa.String(255), nullable=False)
     policies = orm.relationship('QoSPolicy',
                                 cascade='all, delete, delete-orphan')
+    ports = orm.relationship('PortQoSMapping',
+                             cascade='all, delete, delete-orphan')
+    networks = orm.relationship('NetworkQoSMapping',
+                                cascade='all, delete, delete-orphan')
 
 
 class QoSPolicy(model_base.BASEV2, models_v2.HasId):
