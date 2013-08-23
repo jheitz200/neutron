@@ -78,6 +78,7 @@ class SecurityGroupRule(model_base.BASEV2, models_v2.HasId,
 
     direction = sa.Column(sa.Enum('ingress', 'egress',
                                   name='securitygrouprules_direction'))
+    dscp = sa.Column(sa.Integer)
     ethertype = sa.Column(sa.String(40))
     protocol = sa.Column(sa.String(40))
     port_range_min = sa.Column(sa.Integer)
@@ -276,6 +277,7 @@ class SecurityGroupDbMixin(ext_sg.SecurityGroupPluginBase):
                     id=uuidutils.generate_uuid(), tenant_id=tenant_id,
                     security_group_id=rule['security_group_id'],
                     direction=rule['direction'],
+                    dscp=rule.get('dscp'),
                     remote_group_id=rule.get('remote_group_id'),
                     ethertype=rule['ethertype'],
                     protocol=rule['protocol'],
@@ -361,6 +363,7 @@ class SecurityGroupDbMixin(ext_sg.SecurityGroupPluginBase):
                'security_group_id': security_group_rule['security_group_id'],
                'ethertype': security_group_rule['ethertype'],
                'direction': security_group_rule['direction'],
+               'dscp': security_group_rule['dscp'],
                'protocol': security_group_rule['protocol'],
                'port_range_min': security_group_rule['port_range_min'],
                'port_range_max': security_group_rule['port_range_max'],
@@ -377,7 +380,7 @@ class SecurityGroupDbMixin(ext_sg.SecurityGroupPluginBase):
 
         include_if_present = ['protocol', 'port_range_max', 'port_range_min',
                               'ethertype', 'remote_ip_prefix',
-                              'remote_group_id']
+                              'remote_group_id', 'dscp']
         for key in include_if_present:
             value = sgr.get(key)
             if value:

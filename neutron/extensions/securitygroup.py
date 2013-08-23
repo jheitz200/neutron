@@ -40,6 +40,10 @@ class SecurityGroupInvalidPortValue(qexception.InvalidInput):
     message = _("Invalid value for port %(port)s")
 
 
+class SecurityGroupInvalidDscpValue(qexception.InvalidInput):
+    message = _("Invalid value for dscp %(dscp)s. It must be 0 to 63.")
+
+
 class SecurityGroupInvalidIcmpValue(qexception.InvalidInput):
     message = _("Invalid value for ICMP %(field)s (%(attr)s) "
                 "%(value)s. It must be 0 to 255.")
@@ -128,6 +132,20 @@ def convert_ethertype_to_case_insensitive(value):
                 return ethertype
 
 
+def convert_validate_dscp(dscp):
+    if dscp is None:
+        return dscp
+    try:
+        val = int(dscp)
+    except (ValueError, TypeError):
+        raise SecurityGroupInvalidDscpValue(dscp=dscp)
+
+    if val >= 0 and val <= 63:
+        return val
+    else:
+        raise SecurityGroupInvalidDscpValue(dscp=dscp)
+
+
 def convert_validate_port_value(port):
     if port is None:
         return port
@@ -193,6 +211,9 @@ RESOURCE_ATTRIBUTE_MAP = {
         'direction': {'allow_post': True, 'allow_put': True,
                       'is_visible': True,
                       'validate': {'type:values': ['ingress', 'egress']}},
+        'dscp': {'allow_post': True, 'allow_put': False,
+                 'convert_to': convert_validate_dscp,
+                 'default': None, 'is_visible': True},
         'protocol': {'allow_post': True, 'allow_put': False,
                      'is_visible': True, 'default': None,
                      'convert_to': convert_protocol},

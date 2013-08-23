@@ -289,6 +289,7 @@ class IptablesFirewallDriver(firewall.FirewallDriver):
                                    rule.get('protocol'),
                                    rule.get('port_range_min'),
                                    rule.get('port_range_max'))
+            args += self._dscp_arg(rule.get('dscp'))
             args += ['-j RETURN']
             iptables_rules += [' '.join(args)]
 
@@ -305,6 +306,12 @@ class IptablesFirewallDriver(firewall.FirewallDriver):
         # Allow established connections
         iptables_rules += ['-m state --state RELATED,ESTABLISHED -j RETURN']
         return iptables_rules
+
+    def _dscp_arg(self, dscp):
+        if not dscp:
+            return []
+        iptables_rule = ['-m', 'dscp', '--dscp', '%s' % dscp]
+        return iptables_rule
 
     def _protocol_arg(self, protocol):
         if not protocol:

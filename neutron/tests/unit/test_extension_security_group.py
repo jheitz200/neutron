@@ -76,14 +76,15 @@ class SecurityGroupsTestCase(test_db_plugin.NeutronDbPluginV2TestCase):
                                    port_range_min=None, port_range_max=None,
                                    remote_ip_prefix=None, remote_group_id=None,
                                    tenant_id='test_tenant',
-                                   ethertype=const.IPv4):
+                                   ethertype=const.IPv4, dscp=None):
 
         data = {'security_group_rule': {'security_group_id': security_group_id,
                                         'direction': direction,
                                         'protocol': proto,
                                         'ethertype': ethertype,
                                         'tenant_id': tenant_id,
-                                        'ethertype': ethertype}}
+                                        'ethertype': ethertype,
+                                        'dscp': dscp}}
         if port_range_min:
             data['security_group_rule']['port_range_min'] = port_range_min
 
@@ -140,7 +141,8 @@ class SecurityGroupsTestCase(test_db_plugin.NeutronDbPluginV2TestCase):
                             direction='ingress', protocol=const.PROTO_NAME_TCP,
                             port_range_min='22', port_range_max='22',
                             remote_ip_prefix=None, remote_group_id=None,
-                            fmt=None, no_delete=False, ethertype=const.IPv4):
+                            fmt=None, no_delete=False, ethertype=const.IPv4,
+                            dscp=None):
         if not fmt:
             fmt = self.fmt
         rule = self._build_security_group_rule(security_group_id,
@@ -149,7 +151,8 @@ class SecurityGroupsTestCase(test_db_plugin.NeutronDbPluginV2TestCase):
                                                port_range_max,
                                                remote_ip_prefix,
                                                remote_group_id,
-                                               ethertype=ethertype)
+                                               ethertype=ethertype,
+                                               dscp=dscp)
         security_group_rule = self._make_security_group_rule(self.fmt, rule)
         try:
             yield security_group_rule
@@ -1315,6 +1318,43 @@ class TestSecurityGroups(SecurityGroupDBTestCase):
 
                 self.deserialize(self.fmt, res)
                 self.assertEqual(res.status_int, webob.exc.HTTPBadRequest.code)
+
+    def test_create_security_group_rule_dscp(self):
+        name = 'webservers'
+        description = 'my webservers'
+        with self.security_group(name, description) as sg:
+            security_group_id = sg['security_group']['id']
+            direction = "ingress"
+            protocol = 'tcp'
+            port_range_min = 22
+            port_range_max = 22
+            dscp = 16
+            keys = [('security_group_id', security_group_id),
+                    ('direction', direction),
+                    ('protocol', protocol),
+                    ('port_range_min', port_range_min),
+                    ('port_range_max', port_range_max),
+                    ('dscp', dscp)]
+            with self.security_group_rule(security_group_id, direction,
+                                          protocol, port_range_min,
+                                          port_range_max,
+                                          dscp=dscp
+                                          ) as rule:
+                for k, v, in keys:
+                    self.assertEqual(rule['security_group_rule'][k], v)
+
+    def test_create_security_group_rule_dscp_out_of_range(self):
+        name = 'webservers'
+        description = 'my webservers'
+        with self.security_group(name, description) as sg:
+            security_group_id = sg['security_group']['id']
+            rule = self._build_security_group_rule(security_group_id,
+                                                   'ingress', 'tcp', '22',
+                                                   '22', '10.0.0.1/24',
+                                                   dscp='64')
+            res = self._create_security_group_rule(self.fmt, rule)
+            self.deserialize(self.fmt, res)
+            self.assertEqual(res.status_int, 400)
 
 
 class TestSecurityGroupsXML(TestSecurityGroups):

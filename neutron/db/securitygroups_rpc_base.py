@@ -298,7 +298,7 @@ class SecurityGroupServerRpcCallbackMixin(object):
                 'ethertype': rule_in_db['ethertype'],
             }
             for key in ('protocol', 'port_range_min', 'port_range_max',
-                        'remote_ip_prefix', 'remote_group_id'):
+                        'remote_ip_prefix', 'remote_group_id', 'dscp'):
                 if rule_in_db.get(key):
                     if key == 'remote_ip_prefix':
                         direction_ip_prefix = DIRECTION_IP_PREFIX[direction]
