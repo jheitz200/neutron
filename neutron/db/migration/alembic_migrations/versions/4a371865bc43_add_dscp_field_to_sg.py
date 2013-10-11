@@ -18,14 +18,14 @@
 """Add DSCP field to sg
 
 Revision ID: 4a371865bc43
-Revises: 3d6fae8b70b0
+Revises: 562fa8b1d4b5
 Create Date: 2013-09-19 15:51:52.758987
 
 """
 
 # revision identifiers, used by Alembic.
 revision = '4a371865bc43'
-down_revision = '3d6fae8b70b0'
+down_revision = '562fa8b1d4b5'
 
 # Change to ['*'] if this migration applies to all plugins
 
