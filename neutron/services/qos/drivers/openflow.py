@@ -35,7 +35,7 @@ class OpenflowQoSVlanDriver(qos_base.QoSDriver):
         action = ""
         for pk in policy:
             if constants.TYPE_QOS_DSCP in pk['key']:
-                action += "mod_nw_tos=%s" % (pk['value'] << 2)
+                action += "mod_nw_tos=%s" % (int(pk['value']) << 2)
         return action
 
     def create_qos_for_network(self, policy, network_id):
