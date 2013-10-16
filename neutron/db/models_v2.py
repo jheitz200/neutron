@@ -18,6 +18,7 @@
 import sqlalchemy as sa
 from sqlalchemy import orm
 
+from neutron.common import constants
 from neutron.db import model_base
 from neutron.openstack.common import uuidutils
 
@@ -164,6 +165,8 @@ class Subnet(model_base.BASEV2, HasId, HasTenant):
                               backref='subnet',
                               cascade='all, delete, delete-orphan')
     shared = sa.Column(sa.Boolean)
+    dhcp_modes = orm.relationship('DhcpMode',
+                                  cascade='all, delete, delete-orphan')
 
 
 class Network(model_base.BASEV2, HasId, HasTenant):
@@ -175,3 +178,16 @@ class Network(model_base.BASEV2, HasId, HasTenant):
     status = sa.Column(sa.String(16))
     admin_state_up = sa.Column(sa.Boolean)
     shared = sa.Column(sa.Boolean)
+
+
+class DhcpMode(model_base.BASEV2, HasId):
+    __tablename__ = 'dhcp_modes'
+    subnet_id = sa.Column(sa.String(36),
+                          sa.ForeignKey('subnets.id',
+                                        ondelete='CASCADE'))
+    mode = sa.Column(sa.Enum(constants.DHCP_V6_MODE_SLAAC,
+                             constants.DHCP_V6_MODE_RANAME,
+                             constants.DHCP_V6_MODE_RAONLY,
+                             constants.DHCP_MODE_STATIC,
+                             constants.DHCP_V6_MODE_RASTATELESS,
+                             name='dhcp_mode_choices'))

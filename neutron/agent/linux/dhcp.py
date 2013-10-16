@@ -324,12 +324,6 @@ class Dnsmasq(DhcpLocalProcess):
             # if a subnet is specified to have dhcp disabled
             if not subnet.enable_dhcp:
                 continue
-            if subnet.ip_version == 4:
-                mode = 'static'
-            else:
-                # TODO(mark): how do we indicate other options
-                # ra-only, slaac, ra-nameservers, and ra-stateless.
-                mode = 'static'
             if self.version >= self.MINIMUM_VERSION:
                 set_tag = 'set:'
             else:
@@ -340,10 +334,14 @@ class Dnsmasq(DhcpLocalProcess):
             cmd.append('--dhcp-range=%s%s,%s,%s,%ss' %
                        (set_tag, self._TAG_PREFIX % i,
                         cidr.network,
-                        mode,
+                        ''.join("%s," % i for i in subnet.dhcp_modes)[:-1],
                         self.conf.dhcp_lease_duration))
             possible_leases += cidr.size
 
+        for mode in subnet.dhcp_modes:
+            if mode in constants.RA_MODES:
+                cmd.append('--enable-ra')
+                break
         # Cap the limit because creating lots of subnets can inflate
         # this possible lease cap.
         cmd.append('--dhcp-lease-max=%d' %

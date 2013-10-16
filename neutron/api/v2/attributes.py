@@ -229,6 +229,15 @@ def _validate_nameservers(data, valid_values=None):
         ips.append(ip)
 
 
+def _validate_dhcp_modes(data, valid_values=None):
+    if not isinstance(data, list):
+        msg = _("Invalid data format for dhcp_modes: '%s'") % data
+    msg = _("Invalid DHCP modes: %s") % data
+    for d in data:
+        if d not in constants.DHCP_MODES:
+            return msg
+
+
 def _validate_hostroutes(data, valid_values=None):
     if not isinstance(data, list):
         msg = _("Invalid data format for hostroute: '%s'") % data
@@ -518,6 +527,7 @@ validators = {'type:dict': _validate_dict,
               'type:ip_pools': _validate_ip_pools,
               'type:mac_address': _validate_mac_address,
               'type:nameservers': _validate_nameservers,
+              'type:dhcp_modes': _validate_dhcp_modes,
               'type:non_negative': _validate_non_negative,
               'type:range': _validate_range,
               'type:regex': _validate_regex,
@@ -678,6 +688,10 @@ RESOURCE_ATTRIBUTE_MAP = {
                         'default': True,
                         'convert_to': convert_to_boolean,
                         'is_visible': True},
+        'dhcp_modes': {'allow_post': True, 'allow_put': False,
+                       'default': ATTR_NOT_SPECIFIED,
+                       'validate': {'type:dhcp_modes': None},
+                       'is_visible': True},
         SHARED: {'allow_post': False,
                  'allow_put': False,
                  'default': False,

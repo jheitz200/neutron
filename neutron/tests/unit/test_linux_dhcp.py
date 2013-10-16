@@ -23,6 +23,7 @@ from oslo.config import cfg
 from neutron.agent.common import config
 from neutron.agent.linux import dhcp
 from neutron.common import config as base_config
+from neutron.common import constants
 from neutron.openstack.common import log as logging
 from neutron.tests import base
 
@@ -94,6 +95,7 @@ class FakeV4Subnet:
     cidr = '192.168.0.0/24'
     gateway_ip = '192.168.0.1'
     enable_dhcp = True
+    dhcp_modes = ['static']
     host_routes = [FakeV4HostRoute]
     dns_nameservers = ['8.8.8.8']
 
@@ -106,6 +108,7 @@ class FakeV4SubnetGatewayRoute:
     enable_dhcp = True
     host_routes = [FakeV4HostRouteGateway]
     dns_nameservers = ['8.8.8.8']
+    dhcp_modes = ['static']
 
 
 class FakeV6Subnet:
@@ -116,6 +119,7 @@ class FakeV6Subnet:
     enable_dhcp = True
     host_routes = [FakeV6HostRoute]
     dns_nameservers = ['gdca:3ba5:a17a:4ba3::1']
+    dhcp_modes = ['ra-names']
 
 
 class FakeV4SubnetNoDHCP:
@@ -126,6 +130,7 @@ class FakeV4SubnetNoDHCP:
     enable_dhcp = False
     host_routes = []
     dns_nameservers = []
+    dhcp_modes = []
 
 
 class FakeV4SubnetNoGateway:
@@ -136,6 +141,17 @@ class FakeV4SubnetNoGateway:
     enable_dhcp = True
     host_routes = []
     dns_nameservers = []
+
+
+class FakeV4SubnetNoRouter:
+    id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee'
+    ip_version = 4
+    cidr = '192.168.1.0/24'
+    gateway_ip = '192.168.1.1'
+    enable_dhcp = True
+    host_routes = []
+    dns_nameservers = []
+    dhcp_modes = []
 
 
 class FakeV4Network:
@@ -575,10 +591,16 @@ class TestDnsmasq(TestBase):
             '--leasefile-ro']
 
         expected.extend(
-            '--dhcp-range=set:tag%d,%s,static,86400s' %
-            (i, s.cidr.split('/')[0])
+            '--dhcp-range=set:tag%d,%s,%s,86400s' %
+            (i, s.cidr.split('/')[0], ''.join("%s,"
+                                              % i for i in s.dhcp_modes)[:-1])
             for i, s in enumerate(network.subnets)
         )
+        for i, s in enumerate(network.subnets):
+            for mode in s.dhcp_modes:
+                if mode in constants.RA_MODES:
+                    expected.extend(['--enable-ra'])
+                    break
         expected.append('--dhcp-lease-max=%d' % max_leases)
         expected.extend(extra_options)
 

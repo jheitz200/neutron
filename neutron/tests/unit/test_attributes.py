@@ -262,6 +262,20 @@ class TestAttributes(base.BaseTestCase):
             msg = attributes._validate_nameservers(ns, None)
             self.assertIsNone(msg)
 
+    def test_validate_dhcp_modes(self):
+        dhcp_modes = ['ra-stateless', 'ra-names']
+
+        msg = attributes._validate_dhcp_modes(dhcp_modes, None)
+        self.assertIsNone(msg)
+
+        dhcp_modes = ['invalid-mode']
+        msg = attributes._validate_dhcp_modes(dhcp_modes)
+        self.assertIsNotNone(msg)
+
+        invalid_type = 'ra-stateless'
+        msg = attributes._validate_dhcp_modes(invalid_type)
+        self.assertIsNotNone(msg)
+
     def test_validate_hostroutes(self):
         hostroute_pools = [[{'destination': '100.0.0.0/24'}],
                            [{'nexthop': '10.0.2.20'}],

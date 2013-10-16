@@ -894,6 +894,7 @@ class NeutronDbPluginV2(neutron_plugin_base_v2.NeutronPluginBaseV2,
                                     for pool in subnet['allocation_pools']],
                'gateway_ip': subnet['gateway_ip'],
                'enable_dhcp': subnet['enable_dhcp'],
+               'dhcp_modes': [mode['mode'] for mode in subnet['dhcp_modes']],
                'dns_nameservers': [dns['address']
                                    for dns in subnet['dns_nameservers']],
                'host_routes': [{'destination': route['destination'],
@@ -1118,6 +1119,16 @@ class NeutronDbPluginV2(neutron_plugin_base_v2.NeutronPluginBaseV2,
             if s['gateway_ip'] is not None:
                 self._validate_gw_out_of_pools(s['gateway_ip'],
                                                s['allocation_pools'])
+        if s['enable_dhcp']:
+            if (s['ip_version'] == 4 or
+                    s['dhcp_modes'] is attributes.ATTR_NOT_SPECIFIED):
+                s['dhcp_modes'] = [models_v2.DhcpMode(
+                                   mode=constants.DHCP_MODE_STATIC)]
+            elif s['ip_version'] == 6:
+                s['dhcp_modes'] = [models_v2.DhcpMode(mode=mode_s) for
+                                   mode_s in s['dhcp_modes'].split(',')]
+        else:
+            s['dhcp_modes'] = []
 
         self._validate_subnet(context, s)
 
@@ -1134,6 +1145,7 @@ class NeutronDbPluginV2(neutron_plugin_base_v2.NeutronPluginBaseV2,
                     'ip_version': s['ip_version'],
                     'cidr': s['cidr'],
                     'enable_dhcp': s['enable_dhcp'],
+                    'dhcp_modes': s['dhcp_modes'],
                     'gateway_ip': s['gateway_ip'],
                     'shared': network.shared}
             subnet = models_v2.Subnet(**args)
