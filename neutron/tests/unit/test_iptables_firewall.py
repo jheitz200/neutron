@@ -756,9 +756,9 @@ class IptablesFirewallTestCase(base.BaseTestCase):
                                   icmp6_type))
         calls += [call.add_rule('ifake_dev',
                                 '-m state --state INVALID -j DROP'),
-                  call.add_rule('ifake_dev',
-                                '-m state --state RELATED,ESTABLISHED \
-                                -j RETURN')]
+                  call.add_rule(
+                      'ifake_dev',
+                      '-m state --state RELATED,ESTABLISHED -j RETURN')]
 
         if ingress_expected_call:
             calls.append(ingress_expected_call)
