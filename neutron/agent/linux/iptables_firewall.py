@@ -216,7 +216,7 @@ class IptablesFirewallDriver(firewall.FirewallDriver):
     def _spoofing_rule(self, port, ipv4_rules, ipv6_rules):
         #Note(nati) allow dhcp or RA packet
         ipv4_rules += ['-p udp -m udp --sport 68 --dport 67 -j RETURN']
-        ipv6_rules += ['-p icmpv6 -j RETURN']
+        ipv6_rules += ['-p icmpv6 -j ACCEPT']
         mac_ipv4_pairs = []
         mac_ipv6_pairs = []
 
