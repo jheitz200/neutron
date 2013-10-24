@@ -233,12 +233,21 @@ class OVSNeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin,
                                               root_helper)
         # QoS agent support
         if 'OpenflowQoSVlanDriver' in cfg.CONF.QOS.qos_driver:
-
-            self.qos_agent = OVSQoSAgent(self.context,
-                                         self.plugin_rpc,
-                                         root_helper,
-                                         bridge=self.int_br,
-                                         local_vlan_map=self.local_vlan_map)
+            external_bridge = None
+            # Find the br-ex bridge
+            for bridge in self.ancillary_brs:
+                if bridge.br_name == 'br-ex':
+                    external_bridge = bridge
+                    break
+            if external_bridge:
+                self.qos_agent = OVSQoSAgent(self.context,
+                                             self.plugin_rpc,
+                                             root_helper,
+                                             bridge=external_bridge,
+                                             local_vlan_map=self.local_vlan_map
+                                             )
+            else:
+                LOG.exception(_("Failed to locate br-ex for QoS API"))
 
     def _check_ovs_version(self):
         if constants.TYPE_VXLAN in self.tunnel_types:
