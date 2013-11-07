@@ -467,7 +467,7 @@ class IptablesFirewallTestCase(base.BaseTestCase):
         rule = {'ethertype': 'IPv6',
                 'direction': 'ingress',
                 'protocol': 'icmp'}
-        ingress = call.add_rule('ifake_dev', '-p icmpv6 -j ACCEPT')
+        ingress = call.add_rule('ifake_dev', '-p icmpv6 -j RETURN')
         egress = None
         self._test_prepare_port_filter(rule, ingress, egress)
 
@@ -478,7 +478,7 @@ class IptablesFirewallTestCase(base.BaseTestCase):
                 'protocol': 'icmp',
                 'source_ip_prefix': prefix}
         ingress = call.add_rule(
-            'ifake_dev', '-s %s -p icmpv6 -j ACCEPT' % prefix)
+            'ifake_dev', '-s %s -p icmpv6 -j RETURN' % prefix)
         egress = None
         self._test_prepare_port_filter(rule, ingress, egress)
 
@@ -605,7 +605,7 @@ class IptablesFirewallTestCase(base.BaseTestCase):
         rule = {'ethertype': 'IPv6',
                 'direction': 'egress',
                 'protocol': 'icmp'}
-        egress = call.add_rule('ofake_dev', '-p icmpv6 -j ACCEPT')
+        egress = call.add_rule('ofake_dev', '-p icmpv6 -j RETURN')
         ingress = None
         self._test_prepare_port_filter(rule, ingress, egress)
 
@@ -616,7 +616,7 @@ class IptablesFirewallTestCase(base.BaseTestCase):
                 'protocol': 'icmp',
                 'source_ip_prefix': prefix}
         egress = call.add_rule(
-            'ofake_dev', '-s %s -p icmpv6 -j ACCEPT' % prefix)
+            'ofake_dev', '-s %s -p icmpv6 -j RETURN' % prefix)
         ingress = None
         self._test_prepare_port_filter(rule, ingress, egress)
 
