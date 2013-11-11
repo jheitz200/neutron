@@ -64,6 +64,16 @@ class QoSServerRpcApiTestCase(base.BaseTestCase):
                   version=qos_agent_rpc.QOS_RPC_VERSION,
                   topic='fake_topic')])
 
+    def test_get_qos_for_network(self):
+        self.rpc.get_qos_for_network(None, 'fake-network')
+        self.rpc.call.assert_has_calls(
+            [call(None,
+                  {'args': {'network_id': 'fake-network'},
+                   'method': 'get_qos_for_network',
+                   'namespace': None},
+                  version=qos_agent_rpc.QOS_RPC_VERSION,
+                  topic='fake_topic')])
+
 
 class QoSAgentRpcTestCase(base.BaseTestCase):
     def setUp(self):
