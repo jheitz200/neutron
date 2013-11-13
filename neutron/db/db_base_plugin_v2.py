@@ -26,6 +26,7 @@ from sqlalchemy.orm import exc
 from neutron.api.v2 import attributes
 from neutron.common import constants
 from neutron.common import exceptions as q_exc
+from neutron.common import ipv6
 from neutron.db import api as db
 from neutron.db import models_v2
 from neutron.db import sqlalchemyutils
@@ -439,7 +440,7 @@ class NeutronDbPluginV2(neutron_plugin_base_v2.NeutronPluginBaseV2,
                             subnet_id=subnet_id).delete()
 
     @staticmethod
-    def _generate_ip(context, subnets):
+    def _generate_ip(context, subnets, useFixedIp=False):
         """Generate an IP address.
 
         The IP address will be generated from one of the subnets defined on
@@ -455,6 +456,13 @@ class NeutronDbPluginV2(neutron_plugin_base_v2.NeutronPluginBaseV2,
                             "allocated"),
                           {'subnet_id': subnet['id'], 'cidr': subnet['cidr']})
                 continue
+            dhcp_modes = subnet['dhcp_modes']
+            ip_version = subnet['ip_version']
+            if (not useFixedIp and ip_version == 6 and
+                    'static' not in dhcp_modes):
+                # (dzyu) When useFixedIP is True, do not need generate IP
+                # address by EUI64, just use provided fixed ip.
+                return {'ip_address': None, 'subnet_id': subnet['id']}
             ip_address = range['first_ip']
             LOG.debug(_("Allocated IP - %(ip_address)s from %(first_ip)s "
                         "to %(last_ip)s"),
@@ -635,7 +643,7 @@ class NeutronDbPluginV2(neutron_plugin_base_v2.NeutronPluginBaseV2,
             else:
                 subnets = [self._get_subnet(context, fixed['subnet_id'])]
                 # IP address allocation
-                result = self._generate_ip(context, subnets)
+                result = self._generate_ip(context, subnets, True)
                 ips.append({'ip_address': result['ip_address'],
                             'subnet_id': result['subnet_id']})
         return ips
@@ -706,7 +714,10 @@ class NeutronDbPluginV2(neutron_plugin_base_v2.NeutronPluginBaseV2,
             version_subnets = [v4, v6]
             for subnets in version_subnets:
                 if subnets:
-                    result = NeutronDbPluginV2._generate_ip(context, subnets)
+                    # (dzyu) fixed_configured=False, it means does not use
+                    # the fixed IP addresses, so set useFixedIp=False
+                    result = NeutronDbPluginV2._generate_ip(context,
+                                                            subnets, False)
                     ips.append({'ip_address': result['ip_address'],
                                 'subnet_id': result['subnet_id']})
         return ips
@@ -1354,6 +1365,13 @@ class NeutronDbPluginV2(neutron_plugin_base_v2.NeutronPluginBaseV2,
                 for ip in ips:
                     ip_address = ip['ip_address']
                     subnet_id = ip['subnet_id']
+                    if ip_address is None:
+                        # (dzyu)it means the dhcp modes is not static, the IP
+                        # address needs to be generated via EUI-64 rule
+                        subnet = self.get_subnet(context, subnet_id)
+                        prefix = subnet['cidr']
+                        ip_address = ipv6.get_ipv6_addr_by_EUI64(
+                            prefix, mac_address)
                     LOG.debug(_("Allocated IP %(ip_address)s "
                                 "(%(network_id)s/%(subnet_id)s/%(port_id)s)"),
                               {'ip_address': ip_address,
