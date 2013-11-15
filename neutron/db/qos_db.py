@@ -200,3 +200,24 @@ class QoSDbMixin(ext_qos.QoSPluginBase):
                 db.policies.append(
                     QoSPolicy(qos_id=db, key=k, value=v))
         return self._create_qos_dict(db)
+
+    def validate_qos(self, qos):
+        if 'policies' not in qos['qos']:
+            raise ext_qos.QoSValidationError()
+        qos = qos['qos']
+        try:
+            validator = getattr(self, 'validate_policy_' + qos['type'])
+        except AttributeError:
+            raise Exception(_('No validator found for type: %s') % qos['type'])
+        validator(qos['policies'])
+
+    def validate_policy_dscp(self, policy):
+        if constants.TYPE_QOS_DSCP in policy:
+            try:
+                dscp = int(policy[constants.TYPE_QOS_DSCP])
+                if dscp < 0 or dscp > 63:
+                    raise ext_qos.QoSValidationError()
+            except ValueError:
+                raise ext_qos.QoSValidationError()
+        else:
+            raise ext_qos.QoSValidationError()

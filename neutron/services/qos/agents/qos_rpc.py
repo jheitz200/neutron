@@ -22,16 +22,16 @@ from neutron.openstack.common import log as logging
 from oslo.config import cfg
 
 LOG = logging.getLogger(__name__)
-QOS_RPC_VERSION = "1.0"
+QOS_RPC_VERSION = "1.1"
 
 
 QoSOpts = [
     cfg.StrOpt(
         'qos_driver',
-        default='neutron.services.qos.drivers.openflow.OpenflowQoSVlanDriver')
+        default='neutron.services.qos.drivers.qos_base.NoOpQoSDriver')
 ]
 
-cfg.CONF.register_opts(QoSOpts, "QOS")
+cfg.CONF.register_opts(QoSOpts, "qos")
 
 
 class QoSAgentRpcApiMixin(object):
@@ -91,7 +91,7 @@ class QoSServerRpcApiMixin(object):
 class QoSAgentRpcMixin(object):
 
     def init_qos(self, *args, **kwargs):
-        qos_driver = cfg.CONF.QOS.qos_driver
+        qos_driver = cfg.CONF.qos.qos_driver
         LOG.debug(_("Starting QoS driver %s"), qos_driver)
         self.qos = importutils.import_object(qos_driver, *args, **kwargs)
 

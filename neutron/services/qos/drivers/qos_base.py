@@ -23,17 +23,32 @@ class QoSDriver(object):
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
-    def create_qos_for_network(self, policy, network_id):
-        pass
-
-    @abc.abstractmethod
     def delete_qos_for_network(self, network_id):
         pass
 
     @abc.abstractmethod
-    def create_qos_for_port(self, policy, port_id):
+    def delete_qos_for_port(self, port_id):
         pass
 
     @abc.abstractmethod
+    def network_qos_updated(self, policy, network_id):
+        pass
+
+    @abc.abstractmethod
+    def port_qos_updated(self, policy, port_id):
+        pass
+
+
+class NoOpQoSDriver(QoSDriver):
+
+    def delete_qos_for_network(self, network_id):
+        pass
+
     def delete_qos_for_port(self, port_id):
+        pass
+
+    def network_qos_updated(self, policy, network_id):
+        pass
+
+    def port_qos_updated(self, policy, port_id):
         pass

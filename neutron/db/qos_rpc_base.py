@@ -87,7 +87,10 @@ class QoSServerRpcMixin(qos_db.QoSDbMixin):
 class QoSServerRpcCallbackMixin(object):
 
     def get_policy_for_qos(self, context, **kwargs):
+        result = {}
         qos_id = kwargs.get('qos_id')
         query = context.session.query(qos_db.QoS)
         query.filter(qos_db.QoS.id.in_(qos_id))
-        return query.one().policies
+        for policy in query.one().policies:
+            result[policy['key']] = policy['value']
+        return result

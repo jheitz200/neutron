@@ -697,22 +697,3 @@ class OVSNeutronPluginV2(db_base_plugin_v2.NeutronDbPluginV2,
             super(OVSNeutronPluginV2, self).delete_port(context, id)
 
         self.notify_security_groups_member_updated(context, port)
-
-    def validate_qos(self, qos):
-        if 'qos' in qos:
-            if 'policies' not in qos['qos']:
-                raise qos.QoSValidationError()
-            self._validate_policy(qos['qos']['policies'])
-        else:
-            raise qos.QoSValidationError()
-
-    def _validate_policy(self, policy):
-            if 'dscp' in policy:
-                try:
-                    dscp = int(policy['dscp'])
-                    if dscp < 0 or dscp > 63:
-                        raise qos.QoSValidationError()
-                except ValueError:
-                    raise qos.QoSValidationError()
-            else:
-                raise qos.QoSValidationError()

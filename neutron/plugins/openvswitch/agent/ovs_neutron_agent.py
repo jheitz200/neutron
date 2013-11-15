@@ -127,9 +127,6 @@ class OVSQoSAgent(qos_rpc.QoSAgentRpcMixin):
         self.context = context
         self.plugin_rpc = plugin_rpc
         self.root_helper = root_helper
-        if 'OpenflowQoSVlanDriver' in cfg.CONF.QOS.qos_driver:
-            self.init_qos(kwargs.get('bridge'),
-                          kwargs.get('local_vlan_map'))
 
 
 class OVSNeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin,
@@ -232,7 +229,10 @@ class OVSNeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin,
                                               self.plugin_rpc,
                                               root_helper)
         # QoS agent support
-        if 'OpenflowQoSVlanDriver' in cfg.CONF.QOS.qos_driver:
+        self.qos_agent = OVSQoSAgent(self.context,
+                                     self.plugin_rpc,
+                                     root_helper)
+        if 'OpenflowQoSVlanDriver' in cfg.CONF.qos.qos_driver:
             external_bridge = None
             # Find the br-ex bridge
             for bridge in self.ancillary_brs:
@@ -240,14 +240,13 @@ class OVSNeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin,
                     external_bridge = bridge
                     break
             if external_bridge:
-                self.qos_agent = OVSQoSAgent(self.context,
-                                             self.plugin_rpc,
-                                             root_helper,
-                                             bridge=external_bridge,
-                                             local_vlan_map=self.local_vlan_map
-                                             )
+                self.qos_agent.init_qos(bridge=external_bridge,
+                                        local_vlan_map=self.local_vlan_map
+                                        )
             else:
                 LOG.exception(_("Failed to locate br-ex for QoS API"))
+        else:
+            self.qos_agent.init_qos()
 
     def _check_ovs_version(self):
         if constants.TYPE_VXLAN in self.tunnel_types:
