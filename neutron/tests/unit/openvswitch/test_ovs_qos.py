@@ -32,6 +32,7 @@ class OpenvswitchQoSTestCase(test_qos.QoSDBTestCase):
     _plugin_name = PLUGIN_NAME
 
     def setUp(self, plugin=None):
+        self.addCleanup(mock.patch.stopall)
         notifier_p = mock.patch(NOTIFIER)
         notifier_cls = notifier_p.start()
         self.notifier = mock.Mock()
