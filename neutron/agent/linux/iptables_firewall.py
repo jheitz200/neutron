@@ -216,7 +216,7 @@ class IptablesFirewallDriver(firewall.FirewallDriver):
     def _spoofing_rule(self, port, ipv4_rules, ipv6_rules):
         #Note(nati) allow dhcp or RA packet
         ipv4_rules += ['-p udp -m udp --sport 68 --dport 67 -j RETURN']
-        ipv6_rules += ['-p icmpv6 -j ACCEPT']
+        ipv6_rules += ['-p icmpv6 -j RETURN']
         mac_ipv4_pairs = []
         mac_ipv6_pairs = []
 
@@ -243,6 +243,9 @@ class IptablesFirewallDriver(firewall.FirewallDriver):
         #Note(nati) Drop dhcp packet from VM
         return ['-p udp -m udp --sport 67 --dport 68 -j DROP']
 
+    def _accept_icmpv6(self):
+        return ['-p icmpv6 -j RETURN']
+
     def _add_rule_by_security_group(self, port, direction):
         chain_name = self._port_chain_name(port, direction)
         # select rules for current direction
@@ -259,6 +262,8 @@ class IptablesFirewallDriver(firewall.FirewallDriver):
                                 ipv4_iptables_rule,
                                 ipv6_iptables_rule)
             ipv4_iptables_rule += self._drop_dhcp_rule()
+        if direction == INGRESS_DIRECTION:
+            ipv6_iptables_rule += self._accept_icmpv6()
         ipv4_iptables_rule += self._convert_sgr_to_iptables_rules(
             ipv4_sg_rules)
         ipv6_iptables_rule += self._convert_sgr_to_iptables_rules(

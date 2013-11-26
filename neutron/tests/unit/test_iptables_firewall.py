@@ -729,7 +729,7 @@ class IptablesFirewallTestCase(base.BaseTestCase):
 
         if ethertype == 'IPv6':
             filter_inst = self.v6filter_inst
-            dhcp_rule = call.add_rule('ofake_dev', '-p icmpv6 -j ACCEPT')
+            dhcp_rule = call.add_rule('ofake_dev', '-p icmpv6 -j RETURN')
 
         sg = [rule]
         port['security_group_rules'] = sg
