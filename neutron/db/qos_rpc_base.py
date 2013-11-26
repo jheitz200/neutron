@@ -90,7 +90,7 @@ class QoSServerRpcCallbackMixin(object):
         result = {}
         qos_id = kwargs.get('qos_id')
         query = context.session.query(qos_db.QoS)
-        query.filter(qos_db.QoS.id.in_(qos_id))
+        query.filter(qos_db.QoS.id == qos_id)
         for policy in query.one().policies:
             result[policy['key']] = policy['value']
         return result
