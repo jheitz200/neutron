@@ -233,18 +233,17 @@ class OVSNeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin,
                                      self.plugin_rpc,
                                      root_helper)
         if 'OpenflowQoSVlanDriver' in cfg.CONF.qos.qos_driver:
-            external_bridge = None
-            # Find the br-ex bridge
-            for bridge in self.ancillary_brs:
-                if bridge.br_name == 'br-ex':
-                    external_bridge = bridge
-                    break
-            if external_bridge:
+            # TODO(scollins) - Make this configurable, if there is
+            # more than one physical bridge added to
+            # bridge_mappings
+            if len(self.phys_brs):
+                external_bridge = self.phys_brs[self.phys_brs.keys()[0]]
                 self.qos_agent.init_qos(bridge=external_bridge,
                                         local_vlan_map=self.local_vlan_map
                                         )
             else:
-                LOG.exception(_("Failed to locate br-ex for QoS API"))
+                LOG.exception(_("Unable to activate QoS API",
+                                "No bridge_mappings configured!"))
         else:
             self.qos_agent.init_qos()
 
