@@ -23,6 +23,7 @@ from oslo.config import cfg
 
 from neutron.agent.common import config as a_cfg
 from neutron.agent.linux.iptables_firewall import IptablesFirewallDriver
+from neutron.common import constants
 from neutron.tests import base
 from neutron.tests.unit import test_api_v2
 
@@ -749,7 +750,7 @@ class IptablesFirewallTestCase(base.BaseTestCase):
                                '-j $ifake_dev'),
                  ]
         if ethertype == 'IPv6':
-            for icmp6_type in [130, 131, 132, 134, 135, 136]:
+            for icmp6_type in constants.ICMPV6_ALLOWED_TYPES:
                 calls.append(
                     call.add_rule('ifake_dev',
                                   '-p icmpv6 --icmpv6-type %s -j RETURN' %
