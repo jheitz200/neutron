@@ -242,7 +242,7 @@ class OVSNeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin,
                                         local_vlan_map=self.local_vlan_map
                                         )
             else:
-                LOG.exception(_("Unable to activate QoS API",
+                LOG.exception(_("Unable to activate QoS API"
                                 "No bridge_mappings configured!"))
         else:
             self.qos_agent.init_qos()
