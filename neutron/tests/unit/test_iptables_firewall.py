@@ -747,11 +747,18 @@ class IptablesFirewallTestCase(base.BaseTestCase):
                                '-m physdev --physdev-out tapfake_dev '
                                '--physdev-is-bridged '
                                '-j $ifake_dev'),
-                 call.add_rule(
-                     'ifake_dev', '-m state --state INVALID -j DROP'),
-                 call.add_rule(
-                     'ifake_dev',
-                     '-m state --state RELATED,ESTABLISHED -j RETURN')]
+                 ]
+        if ethertype == 'IPv6':
+            for icmp6_type in [130, 131, 132, 134, 135, 136]:
+                calls.append(
+                    call.add_rule('ifake_dev',
+                                  '-p icmpv6 --icmpv6-type %s -j RETURN' %
+                                  icmp6_type))
+        calls += [call.add_rule('ifake_dev',
+                                '-m state --state INVALID -j DROP'),
+                  call.add_rule('ifake_dev',
+                                '-m state --state RELATED,ESTABLISHED \
+                                -j RETURN')]
 
         if ingress_expected_call:
             calls.append(ingress_expected_call)
