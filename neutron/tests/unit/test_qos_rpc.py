@@ -172,7 +172,7 @@ class TestQoSAgentWithOpenFlow(base.BaseTestCase):
         cfg.CONF.set_override(
             'qos_driver',
             self.QOS_DRIVER,
-            group="QOS")
+            group="qos")
         self.root_helper = "sudo"
         self.BR_NAME = "fake-br"
         self.br = ovs_lib.OVSBridge(self.BR_NAME, self.root_helper)
