@@ -53,6 +53,8 @@ class OpenflowQoSVlanDriver(qos_base.QoSDriver):
         self.qoses[network_id] = True
 
     def delete_qos_for_network(self, network_id):
+        if not network_id in self.qoses:
+            return
         vlmap = self.local_vlan_map[network_id]
         if vlmap.segmentation_id:
             # Provider network - remove the mod_nw_tos key from
@@ -65,9 +67,8 @@ class OpenflowQoSVlanDriver(qos_base.QoSDriver):
         del self.qoses[network_id]
 
     def network_qos_updated(self, policy, network_id):
-        if network_id in self.qoses:
-            # Remove old flow, create new one with the updated policy
-            self.delete_qos_for_network(network_id)
+        # Remove old flow, create new one with the updated policy
+        self.delete_qos_for_network(network_id)
         self.create_qos_for_network(policy, network_id)
 
     def create_qos_for_port(self, policy, port_id):
@@ -77,6 +78,8 @@ class OpenflowQoSVlanDriver(qos_base.QoSDriver):
         self.qoses[port_id] = True
 
     def delete_qos_for_port(self, port_id):
+        if not port_id in self.qoses:
+            return
         #TODO(scollins) - Find a way to pass in --strict,
         # so we can match just the one flow
         ofport = self.bridge.get_vif_port_by_id(port_id).ofport
@@ -84,7 +87,6 @@ class OpenflowQoSVlanDriver(qos_base.QoSDriver):
         del self.qoses[port_id]
 
     def port_qos_updated(self, policy, port_id):
-        if port_id in self.qoses:
-            # Remove flow, create new one with the updated policy
-            self.delete_qos_for_port(port_id)
+        # Remove flow, create new one with the updated policy
+        self.delete_qos_for_port(port_id)
         self.create_qos_for_port(policy, port_id)
