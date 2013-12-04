@@ -15,6 +15,9 @@
 #    under the License.
 #
 # @author: Sean M. Collins, sean@coreitpro.com, Comcast #
+import sqlalchemy as sa
+from sqlalchemy import orm
+from sqlalchemy.orm import exc
 
 from neutron.db import qos_db
 
@@ -94,3 +97,13 @@ class QoSServerRpcCallbackMixin(object):
         for policy in query.one().policies:
             result[policy['key']] = policy['value']
         return result
+
+    def get_qos_for_network(self, context, **kwargs):
+        network_id = kwargs.get('network_id')
+        query = context.session.query(qos_db.NetworkQoSMapping)
+        query.filter_by(network_id = network_id)
+        try:
+            mapping = query.one()
+            return mapping.qos_id
+        except exc.NoResultFound:
+            return []
