@@ -49,7 +49,9 @@ class OpenflowQoSVlanDriver(qos_base.QoSDriver):
                                      vlmap.segmentation_id, mod_nw_tos)
                                  )
         else:
-            self.bridge.add_flow(dl_vlan=vlmap.vlan, actions=mod_nw_tos)
+            # Fallback to creating a new flow
+            self.bridge.add_flow(dl_vlan=vlmap.vlan, actions="%s,NORMAL" %
+                                 mod_nw_tos)
         self.qoses[network_id] = True
 
     def delete_qos_for_network(self, network_id):
