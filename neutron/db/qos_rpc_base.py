@@ -93,17 +93,16 @@ class QoSServerRpcCallbackMixin(object):
         result = {}
         qos_id = kwargs.get('qos_id')
         query = context.session.query(qos_db.QoS)
-        query.filter(qos_db.QoS.id == qos_id)
-        for policy in query.one().policies:
+        results = query.filter_by(id = qos_id)
+        for policy in results.one().policies:
             result[policy['key']] = policy['value']
         return result
 
     def get_qos_for_network(self, context, **kwargs):
         network_id = kwargs.get('network_id')
         query = context.session.query(qos_db.NetworkQoSMapping)
-        query.filter_by(network_id = network_id)
         try:
-            mapping = query.one()
+            mapping = query.filter_by(network_id = network_id).one()
             return mapping.qos_id
         except exc.NoResultFound:
             return []
