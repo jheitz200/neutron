@@ -619,8 +619,8 @@ class OVSNeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin,
             self.provision_local_vlan(net_uuid, network_type,
                                       physical_network, segmentation_id)
             # Check for a QoS policy for the network
-            qos_mapping = self.plugin_rpc.get_qos_for_network(self.context,
-                                                              net_uuid)
+            qos_mapping = self.plugin_rpc.get_qos_by_network(self.context,
+                                                             net_uuid)
             if qos_mapping:
                 self.qos_agent.network_qos_updated(self.context,
                                                    qos_mapping,
