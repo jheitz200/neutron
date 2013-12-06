@@ -87,12 +87,12 @@ class QoSServerRpcApiMixin(object):
                          version=QOS_RPC_VERSION,
                          topic=self.topic)
 
-    def get_qos_for_network(self, context, network_id):
+    def get_qos_by_network(self, context, network_id):
         LOG.debug(_("Checking for QoS policy for net: %s"),
                     network_id)
 
         return self.call(context,
-                         self.make_msg('get_qos_for_network',
+                         self.make_msg('get_qos_by_network',
                                         network_id=network_id),
                          version=QOS_RPC_VERSION,
                          topic=self.topic)

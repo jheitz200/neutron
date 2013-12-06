@@ -140,7 +140,7 @@ class QoSServerRpcCallbackMixin(object):
             result[policy['key']] = policy['value']
         return result
 
-    def get_qos_for_network(self, context, **kwargs):
+    def get_qos_by_network(self, context, **kwargs):
         network_id = kwargs.get('network_id')
         query = context.session.query(qos_db.NetworkQoSMapping)
         try:
