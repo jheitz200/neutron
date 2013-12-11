@@ -44,7 +44,7 @@ class OpenflowQoSVlanDriver(qos_base.QoSDriver):
         vlmap = self.local_vlan_map[network_id]
         mod_nw_tos = self._create_flow_statement_for_policy(policy)
         if vlmap.segmentation_id:
-            # Provider network - just add another action to existing
+            # Add another action to existing
             # flow that rewrites the VLAN tag ID
             self.bridge.mod_flow(dl_vlan=vlmap.vlan,
                                  actions="mod_vlan_vid=%s,%s,NORMAL" % (
