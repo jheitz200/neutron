@@ -62,8 +62,7 @@ class OpenflowQoSVlanDriver(qos_base.QoSDriver):
             return
         vlmap = self.local_vlan_map[network_id]
         if vlmap.segmentation_id:
-            # Provider network - remove the mod_nw_tos key from
-            # the flow
+            # remove the mod_nw_tos key from the flow
             self.bridge.mod_flow(
                 dl_vlan=vlmap.vlan,
                 actions="mod_vlan_vid=%s,NORMAL" % vlmap.segmentation_id)
