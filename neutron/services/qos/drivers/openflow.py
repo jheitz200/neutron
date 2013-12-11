@@ -39,6 +39,8 @@ class OpenflowQoSVlanDriver(qos_base.QoSDriver):
         return action
 
     def create_qos_for_network(self, policy, network_id):
+        if network_id not in self.local_vlan_map:
+            return
         vlmap = self.local_vlan_map[network_id]
         mod_nw_tos = self._create_flow_statement_for_policy(policy)
         if vlmap.segmentation_id:
@@ -55,7 +57,8 @@ class OpenflowQoSVlanDriver(qos_base.QoSDriver):
         self.qoses[network_id] = True
 
     def delete_qos_for_network(self, network_id):
-        if not network_id in self.qoses:
+        if (network_id not in self.qoses or
+                network_id not in self.local_vlan_map):
             return
         vlmap = self.local_vlan_map[network_id]
         if vlmap.segmentation_id:
