@@ -19,14 +19,14 @@
 """Add subnet_mode property
 
 Revision ID: 2447ad0e9585
-Revises: e197124d4b9
+Revises: 4a371865bc43
 Create Date: 2013-10-23 16:36:44.188904
 
 """
 
 # revision identifiers, used by Alembic.
 revision = '2447ad0e9585'
-down_revision = '50e86cb2637a'
+down_revision = '4a371865bc43'
 
 # Change to ['*'] if this migration applies to all plugins
 
