@@ -80,21 +80,33 @@ class QoSAgentRpcTestCase(base.BaseTestCase):
         super(QoSAgentRpcTestCase, self).setUp()
         self.agent = qos_agent_rpc.QoSAgentRpcMixin()
         self.agent.context = None
+        self.fake_policy = {"fake": "qos"}
         rpc = mock.Mock()
+        rpc.get_policy_for_qos.return_value = self.fake_policy
         self.agent.plugin_rpc = rpc
         self.agent.qos = mock.Mock()
 
     def test_network_qos_deleted(self):
         self.agent.network_qos_deleted(None, 'fake-qos', 'fake-network')
+        self.agent.qos.delete_qos_for_network.assert_has_calls(
+            [mock.call('fake-network')])
 
     def test_network_qos_updated(self):
         self.agent.network_qos_updated(None, 'fake-qos', 'fake-network')
+        self.agent.plugin_rpc.get_policy_for_qos.assert_has_calls(
+            [mock.call(None, 'fake-qos')])
+        self.agent.qos.network_qos_updated.assert_has_calls(
+            [mock.call(self.fake_policy, 'fake-network')])
 
     def test_port_qos_updated(self):
         self.agent.port_qos_updated(None, 'fake-qos', 'fake-port')
+        self.agent.qos.port_qos_updated.assert_has_calls(
+            [mock.call(self.fake_policy, 'fake-port')])
 
     def test_port_qos_deleted(self):
         self.agent.port_qos_deleted(None, 'fake-qos', 'fake-port')
+        self.agent.qos.delete_qos_for_port.assert_has_calls(
+            [mock.call('fake-port')])
 
 
 class FakeQoSNotifierApi(proxy.RpcProxy,
