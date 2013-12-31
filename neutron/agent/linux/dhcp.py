@@ -399,9 +399,15 @@ class Dnsmasq(DhcpLocalProcess):
         """Writes a dnsmasq compatible hosts file."""
         r = re.compile('[:.]')
         buf = StringIO.StringIO()
+        subnet_ids = [subnet.id for subnet in self.network.subnets]
 
         for port in self.network.ports:
             for alloc in port.fixed_ips:
+                # Note(scollins) Only create entries that are
+                # assocaited with the subnet being managed by this
+                # dhcp agent
+                if alloc.subnet_id not in subnet_ids:
+                    continue
                 name = 'host-%s.%s' % (r.sub('-', alloc.ip_address),
                                        self.conf.dhcp_domain)
                 set_tag = ''
