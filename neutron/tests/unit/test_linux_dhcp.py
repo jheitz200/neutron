@@ -58,8 +58,7 @@ class FakePort2:
     id = 'ffffffff-ffff-ffff-ffff-ffffffffffff'
     admin_state_up = False
     fixed_ips = [FakeIPAllocation('fdca:3ba5:a17a:4ba3::2',
-                                  'ffffffff-ffff-ffff-ffff-ffffffffffff'
-)]
+                                  'ffffffff-ffff-ffff-ffff-ffffffffffff')]
     mac_address = '00:00:f3:aa:bb:cc'
 
     def __init__(self):
@@ -72,8 +71,7 @@ class FakePort3:
     fixed_ips = [FakeIPAllocation('192.168.0.3',
                                   'dddddddd-dddd-dddd-dddd-dddddddddddd'),
                  FakeIPAllocation('fdca:3ba5:a17a:4ba3::3',
-                                  'ffffffff-ffff-ffff-ffff-ffffffffffff'
-)]
+                                  'ffffffff-ffff-ffff-ffff-ffffffffffff')]
     mac_address = '00:00:0f:aa:bb:cc'
 
     def __init__(self):
