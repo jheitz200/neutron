@@ -222,6 +222,32 @@ class SecurityGroupServerRpcCallbackMixin(object):
             ips[port['network_id']].append(ip)
         return ips
 
+    def _select_gateway_ips_for_network_ids(self, context, network_ids):
+        if not network_ids:
+            return {}
+        query = context.session.query(models_v2.Port,
+                                      models_v2.IPAllocation.ip_address)
+        query = query.join(models_v2.IPAllocation)
+        query = query.filter(models_v2.Port.network_id.in_(network_ids))
+        query = query.filter(models_v2.Port.device_owner == q_const.DEVICE_OWNER_ROUTER_GW ||
+                             models_v2.Port.device_owner == q_const.DEVICE_OWNER_ROUTER_INTF)
+        ips = {}
+        for network_id in network_ids:
+            ips[network_id] = []
+
+        for port, ip in query:
+            ips[port['network_id']].append(ip)
+
+        # Grab subnet gateway IPs, for the case when the gateway is a
+        # non-openstack device
+        query = context.session.query(models_v2.Subnet)
+        query = query.filter(models_v2.Subnet.network_id.in_(network_ids))
+
+        for net in query:
+            ips[net['network_id']].append(net['gateway_ip'])
+
+        return ips
+
     def _convert_remote_group_id_to_ip_prefix(self, context, ports):
         remote_group_ids = self._select_remote_group_ids(ports)
         ips = self._select_ips_for_remote_group(context, remote_group_ids)
@@ -284,6 +310,7 @@ class SecurityGroupServerRpcCallbackMixin(object):
     def _apply_provider_rule(self, context, ports):
         network_ids = self._select_network_ids(ports)
         ips = self._select_dhcp_ips_for_network_ids(context, network_ids)
+        ips += self._select_gateway_ips_for_network_ids(network_ids)
         for port in ports.values():
             self._add_ingress_ra_rule(port, ips)
             self._add_ingress_dhcp_rule(port, ips)
