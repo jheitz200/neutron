@@ -243,6 +243,14 @@ class OVSNeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin,
         # Initialize iteration counter
         self.iter_num = 0
 
+        self.init_qos()
+
+    def _check_ovs_version(self):
+        if constants.TYPE_VXLAN in self.tunnel_types:
+            check_ovs_version(constants.MINIMUM_OVS_VXLAN_VERSION,
+                              self.root_helper)
+
+    def init_qos(self):
         # QoS agent support
         self.qos_agent = OVSQoSAgent(self.context,
                                      self.plugin_rpc,
@@ -251,21 +259,16 @@ class OVSNeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin,
             # TODO(scollins) - Make this configurable, if there is
             # more than one physical bridge added to
             # bridge_mappings
-            if len(self.phys_brs):
+            if self.phys_brs:
                 external_bridge = self.phys_brs[self.phys_brs.keys()[0]]
                 self.qos_agent.init_qos(bridge=external_bridge,
                                         local_vlan_map=self.local_vlan_map
                                         )
             else:
-                LOG.exception(_("Unable to activate QoS API"
+                LOG.exception(_("Unable to activate QoS API."
                                 "No bridge_mappings configured!"))
         else:
             self.qos_agent.init_qos()
-
-    def _check_ovs_version(self):
-        if constants.TYPE_VXLAN in self.tunnel_types:
-            check_ovs_version(constants.MINIMUM_OVS_VXLAN_VERSION,
-                              self.root_helper)
 
     def _report_state(self):
         # How many devices are likely used by a VM
