@@ -98,7 +98,6 @@ PROTO_NUM_UDP = 17
 # Multicast Listener Query (130),
 # Multicast Listener Report (131),
 # Multicast Listener Done (132),
-# Router Advertisement (134),
 # Neighbor Solicitation (135),
 # Neighbor Advertisement (136)
-ICMPV6_ALLOWED_TYPES = [130, 131, 132, 134, 135, 136]
+ICMPV6_ALLOWED_TYPES = [130, 131, 132, 135, 136]
