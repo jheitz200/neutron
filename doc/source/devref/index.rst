@@ -32,6 +32,20 @@ Programming HowTos and Tutorials
     development.environment
 
 
+Neutron Internals
+-----------------
+.. toctree::
+   :maxdepth: 3
+
+   api_extensions
+   api_layer
+   db_layer
+   l2_agents
+   layer3
+   rpc_api
+   plugin-api
+
+
 Module Reference
 ----------------
 .. toctree::

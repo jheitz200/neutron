@@ -44,7 +44,7 @@ Testing OpenStack projects, including Neutron, is made easier with `DevStack_`.
 
 Create a machine (such as a VM or Vagrant box) running a distribution supported
 by DevStack and install DevStack there. For example, there is a Vagrant script
-for DevStack at https://github.com/jogo/DevstackUp.
+for DevStack at https://github.com/bcwaldon/vagrant_devstack.
 
  .. note::
 
@@ -67,9 +67,26 @@ With `run_tests.sh`
 ~~~~~~~~~~~~~~~~~~~
 
 You can use the `run_tests.sh` script in the root source directory to execute
-tests in a virtualenv:
+tests in a virtualenv::
 
     ./run_tests -V
+
+
+With `nose`
+~~~~~~~~~~~
+
+You can use Nose to run individual tests, as well as use for debugging
+portions of your code::
+
+    source .venv/bin/activate
+    nosetests
+
+There are disadvantages to running Nose - the tests are run sequentially, so
+race condition bugs will not be triggered, and the full test suite will
+take significantly longer that tox & testr. The upside is that testr has
+some rough edges when it comes to diagnosing errors and failures, and there is
+no easy way to set a breakpoint in the Neutron code, and enter an
+interactive debugging session while using testr.
 
 With `tox`
 ~~~~~~~~~~
