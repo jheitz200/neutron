@@ -261,7 +261,8 @@ class OVSNeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin,
             # bridge_mappings
             if self.phys_brs:
                 external_bridge = self.phys_brs[self.phys_brs.keys()[0]]
-                self.qos_agent.init_qos(bridge=external_bridge,
+                self.qos_agent.init_qos(ext_bridge=external_bridge,
+                                        int_bridge=self.int_br,
                                         local_vlan_map=self.local_vlan_map
                                         )
             else:
